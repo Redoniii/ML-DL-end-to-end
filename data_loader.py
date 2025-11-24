@@ -1,7 +1,8 @@
 import os
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 import torchvision.transforms as T
+import random
 
 class DUTSDataset(Dataset):
     def __init__(self, image_dir, mask_dir, transform=None):
@@ -15,7 +16,7 @@ class DUTSDataset(Dataset):
         # Match image-mask pairs by filename
         self.data = []
         for img in self.images:
-            mask = img.replace(".jpg", ".png")
+            mask = img.rsplit(".", 1)[0] + ".png"  # mask filename with .png
             if mask in self.masks:
                 self.data.append((img, mask))
 
@@ -36,9 +37,6 @@ class DUTSDataset(Dataset):
         return image, mask
 
 # Transforms
-from torchvision import transforms
-
-# JointTransform jashtë funksionit për Windows
 class JointTransform:
     def __init__(self, train=True):
         base_transforms = [T.Resize((224,224)), T.ToTensor()]
@@ -54,12 +52,30 @@ class JointTransform:
 def get_transforms(train=True):
     return JointTransform(train=train)
 
-def get_dataloaders(train_img, train_mask, test_img, test_mask, batch_size=8):
-    train_dataset = DUTSDataset(train_img, train_mask, transform=get_transforms(train=True))
-    test_dataset = DUTSDataset(test_img, test_mask, transform=get_transforms(train=False))
+def get_dataloaders(merged_image_dir, merged_mask_dir, batch_size=8):
+    """Creates train/val/test DataLoaders from MERGED folder (70/15/15 split)."""
+    dataset = DUTSDataset(merged_image_dir, merged_mask_dir, transform=get_transforms(train=True))
 
-    # num_workers=0 për Windows
+    # Split sizes
+    total_len = len(dataset)
+    train_len = int(0.7 * total_len)
+    val_len = int(0.15 * total_len)
+    test_len = total_len - train_len - val_len
+
+    # Shuffle dataset before split
+    indices = list(range(total_len))
+    random.shuffle(indices)
+
+    train_dataset, val_dataset, test_dataset = random_split(dataset, [train_len, val_len, test_len])
+
+    # Assign transforms
+    train_dataset.dataset.transform = get_transforms(train=True)
+    val_dataset.dataset.transform = get_transforms(train=False)
+    test_dataset.dataset.transform = get_transforms(train=False)
+
+    # DataLoaders
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
-    return train_loader, test_loader
+    return train_loader, val_loader, test_loader
