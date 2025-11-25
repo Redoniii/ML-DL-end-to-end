@@ -36,15 +36,27 @@ class DUTSDataset(Dataset):
 
         return image, mask
 
-# Transforms
+# Transforms me augmentations
 class JointTransform:
     def __init__(self, train=True):
-        base_transforms = [T.Resize((224,224)), T.ToTensor()]
         if train:
-            aug = [T.RandomHorizontalFlip(), T.RandomRotation(10)]
-            base_transforms = aug + base_transforms
-        self.img_tf = T.Compose(base_transforms)
-        self.mask_tf = T.Compose([T.Resize((224,224)), T.ToTensor()])
+            self.img_tf = T.Compose([
+                T.Resize((224,224)),
+                T.RandomHorizontalFlip(),
+                T.RandomVerticalFlip(),
+                T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+                T.RandomRotation(15),
+                T.ToTensor()
+            ])
+        else:
+            self.img_tf = T.Compose([
+                T.Resize((224,224)),
+                T.ToTensor()
+            ])
+        self.mask_tf = T.Compose([
+            T.Resize((224,224)),
+            T.ToTensor()
+        ])
 
     def __call__(self, image, mask):
         return self.img_tf(image), self.mask_tf(mask)
