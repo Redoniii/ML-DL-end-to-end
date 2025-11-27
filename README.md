@@ -9,7 +9,7 @@ The goal is to automatically identify and segment the most visually important ob
 
 ## Dataset
 
-* **Dataset used:** DUTS (DUTS-TR + DUTS-TE merged) => Merge
+* **Dataset used:** [DUTS Dataset](https://www.kaggle.com/datasets/balraj98/duts-saliency-detection-dataset) (DUTS-TR + DUTS-TE merged) --> Merge
 * **Total images:** 15,572
 * **Total masks:** 15,572
 * **Train/Validation/Test split:** 70% / 15% / 15%
